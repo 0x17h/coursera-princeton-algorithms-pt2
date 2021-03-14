@@ -1,0 +1,14 @@
+# Ignore
+*
+
+# Allow
+!.gitignore
+!README.md
+!LICENSE
+!*/
+
+# Allow
+!/week1-wordnet/WordNet.java
+!/week1-wordnet/SAP.java
+!/week1-wordnet/Outcast.java
+!/week1-wordnet/wordnet.zip
