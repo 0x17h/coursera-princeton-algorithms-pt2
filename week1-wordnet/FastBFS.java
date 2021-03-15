@@ -1,88 +1,61 @@
-import edu.princeton.cs.algs4.Bag;
-import edu.princeton.cs.algs4.Digraph;
-import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.Stack;
 
 public class FastBFS {
-    private class Vertex {
-        public static final int MAX_DISTANCE = Integer.MAX_VALUE;
+    private static final int IS_MARKED_OFFSET = 0;
+    private static final int EDGE_TO_OFFSET = 1;
+    private static final int DISTANCE_TO_OFFSET = 2;
+    private static final int PROPS_COUNT = 3;
 
-        public int distanceTo = MAX_DISTANCE;
-        public int edgeTo;
-        public boolean isMarked;
-
-        public void reinitialize() {
-            distanceTo = MAX_DISTANCE;
-            edgeTo = 0;
-            isMarked = false;
-        }
-    }
+    private final int[] vertexes;
+    private int currentMarkedValue = Integer.MAX_VALUE;
 
     private int currentDistance = 0;
-    private final Vertex[] vertexes;
-    private Queue<Integer> nextStepQueue = new Queue<Integer>();
-    private Bag<Vertex> dirtyQueue = new Bag<Vertex>();
 
-    private final Digraph graph;
+    private int queueStartIndex = 0;
+    private int queueEndIndex = 0;
+    private final int[] nextStepQueue;
 
-    FastBFS(Digraph g) {
+    private final ArrayDigraph graph;
+
+    FastBFS(ArrayDigraph g) {
         if (g == null) {
             throw new IllegalArgumentException("Graph is null");
         }
 
         graph = g;
-        vertexes = new Vertex[g.V()];
-        for (int i = 0; i < vertexes.length; ++i) {
-            vertexes[i] = new Vertex();
-        }
-    }
-
-    public void bfs(Iterable<Integer> sources) {
-        startBfsInLockstep(sources);
-        while (makeStep() != -1) {
-
-        }
-    }
-
-    public void bfs(int source) {
-        startBfsInLockstep(source);
-        while (makeStep() != -1) {
-
-        }
+        vertexes = new int[g.V() * PROPS_COUNT];
+        nextStepQueue = new int[g.V()];
+        reinitialize();
     }
 
     public void startBfsInLockstep(Iterable<Integer> sources) {
-        checkSources(sources);
         reinitialize();
-
         for (int s : sources) {
             addSource(s);
         }
     }
 
     public void startBfsInLockstep(int source) {
-        checkSource(source);
         reinitialize();
         addSource(source);
     }
 
     public int makeStep() {
-        if (nextStepQueue.isEmpty()) {
+        if (isTerminated()) {
             return -1;
         }
 
-        int v = nextStepQueue.dequeue();
-        currentDistance = vertexes[v].distanceTo;
+        int v = dequeue();
+        currentDistance = vertexes[v * PROPS_COUNT + DISTANCE_TO_OFFSET];
 
         for (int w : graph.adj(v)) {
-            Vertex vertex = vertexes[w];
-            if (!vertex.isMarked) {
-                vertex.isMarked = true;
-                vertex.distanceTo = currentDistance + 1;
-                vertex.edgeTo = v;
+            int vertexBase = w * PROPS_COUNT;
+            if (vertexes[vertexBase + IS_MARKED_OFFSET] != currentMarkedValue) {
+                vertexes[vertexBase + IS_MARKED_OFFSET] = currentMarkedValue;
+                vertexes[vertexBase + DISTANCE_TO_OFFSET] = currentDistance + 1;
+                vertexes[vertexBase + EDGE_TO_OFFSET] = v;
 
-                dirtyQueue.add(vertex);
-                nextStepQueue.enqueue(w);
+                enqueue(w);
             }
         }
 
@@ -90,19 +63,21 @@ public class FastBFS {
     }
 
     public void terminate() {
-        if (!nextStepQueue.isEmpty()) {
-            nextStepQueue = new Queue<Integer>();
-        }
+        queueEndIndex = 0;
+        queueStartIndex = 0;
+    }
+
+    public boolean isTerminated() {
+        // return nextStepQueue.isEmpty();
+        return queueEndIndex == queueStartIndex;
     }
 
     public int distanceTo(int w) {
-        checkSource(w);
-        return vertexes[w].distanceTo;
+        return vertexes[w * PROPS_COUNT + DISTANCE_TO_OFFSET];
     }
 
     public boolean hasPathTo(int w) {
-        checkSource(w);
-        return vertexes[w].isMarked;
+        return vertexes[w * PROPS_COUNT + IS_MARKED_OFFSET] == currentMarkedValue;
     }
 
     public int getCurrentDistance() {
@@ -110,61 +85,45 @@ public class FastBFS {
     }
 
     private void addSource(int s) {
-        Vertex v = vertexes[s];
-        v.isMarked = true;
-        v.distanceTo = 0;
-        nextStepQueue.enqueue(s);
-        dirtyQueue.add(v);
-    }
-
-    private void checkSources(Iterable<Integer> sources) {
-        if (sources == null) {
-            throw new IllegalArgumentException("Sources are null");
-        }
-
-        int counter = 0;
-        for (Integer s : sources) {
-            if (s == null) {
-                throw new IllegalArgumentException("Source cannot be null");
-            }
-            checkSource(s);
-            ++counter;
-        }
-
-        if (counter == 0) {
-            // throw new IllegalArgumentException("Count of sources is 0");
-        }
-    }
-
-    private void checkSource(int s) {
-        if (s < 0 || s >= graph.V()) {
-            throw new IllegalArgumentException("Source vertex " + s + " is out of range");
-        }
+        int base = s * PROPS_COUNT;
+        vertexes[base + IS_MARKED_OFFSET] = currentMarkedValue;
+        vertexes[base + DISTANCE_TO_OFFSET] = 0;
+        // nextStepQueue.enqueue(s);
+        enqueue(s);
     }
 
     private void reinitialize() {
         terminate();
         currentDistance = 0;
 
-        for (Vertex v : dirtyQueue) {
-            v.reinitialize();
+        if (currentMarkedValue == Integer.MAX_VALUE) {
+            for (int i = 0; i < vertexes.length; i += PROPS_COUNT) {
+                vertexes[i + IS_MARKED_OFFSET] = Integer.MIN_VALUE;
+                vertexes[i + EDGE_TO_OFFSET] = 0;
+                vertexes[i + DISTANCE_TO_OFFSET] = Integer.MAX_VALUE;
+            }
+            currentMarkedValue = Integer.MIN_VALUE;
         }
 
-        if (!dirtyQueue.isEmpty()) {
-            dirtyQueue = new Bag<Vertex>();
-        }
+        ++currentMarkedValue;
+    }
+
+    private void enqueue(int v) {
+        nextStepQueue[queueEndIndex++] = v;
+    }
+
+    private int dequeue() {
+        return nextStepQueue[queueStartIndex++];
     }
 
     public Iterable<Integer> pathTo(int v) {
-        checkSource(v);
-
         if (!hasPathTo(v)) {
             return null;
         }
 
         Stack<Integer> path = new Stack<Integer>();
         int x = v;
-        for (; vertexes[x].distanceTo != 0; x = vertexes[x].edgeTo) {
+        for (; vertexes[x + DISTANCE_TO_OFFSET] != 0; x = vertexes[x + EDGE_TO_OFFSET]) {
             path.push(x);
         }
         path.push(x);
