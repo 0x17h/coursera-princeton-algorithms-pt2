@@ -43,6 +43,7 @@ public class WordNet {
 
     // is the word a WordNet noun?
     public boolean isNoun(String word) {
+        checkNoun(word);
         return nouns.containsKey(word);
     }
 
@@ -126,14 +127,18 @@ public class WordNet {
     }
 
     private Bag<Integer> getNoun(String noun) {
-        if (noun == null) {
-            throw new IllegalArgumentException("Noun can't be null");
-        }
+        checkNoun(noun);
         Bag<Integer> v = nouns.get(noun);
         if (v == null) {
             throw new IllegalArgumentException("Noun '" + noun + "' is not a WordNet noun");
         }
         return v;
+    }
+
+    private void checkNoun(String noun) {
+        if (noun == null) {
+            throw new IllegalArgumentException("Noun can't be null");
+        }
     }
 
     private class RootsDetector {

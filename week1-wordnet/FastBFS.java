@@ -132,7 +132,7 @@ public class FastBFS {
         }
 
         if (counter == 0) {
-            throw new IllegalArgumentException("Count of sources is 0");
+            // throw new IllegalArgumentException("Count of sources is 0");
         }
     }
 

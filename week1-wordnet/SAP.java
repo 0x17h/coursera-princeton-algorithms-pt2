@@ -19,8 +19,9 @@ public class SAP {
 
     // constructor takes a digraph (not necessarily a DAG)
     public SAP(Digraph g) {
-        vBfs = new FastBFS(g);
-        wBfs = new FastBFS(g);
+        Digraph copy = new Digraph(g);
+        vBfs = new FastBFS(copy);
+        wBfs = new FastBFS(copy);
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
@@ -93,8 +94,6 @@ public class SAP {
                ? vBfs.distanceTo(v) + wBfs.distanceTo(v)
                : -1;
     }
-
-    private int
 
     // do unit testing of this class
     public static void main(String[] args) {
