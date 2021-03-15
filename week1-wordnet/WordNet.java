@@ -111,14 +111,14 @@ public class WordNet {
         }
     }
 
-    public void checkThatOneRooted(Digraph g) {
+    private void checkThatOneRooted(Digraph g) {
         RootsDetector d = new RootsDetector(g);
         if (!d.hasOneRoot()) {
             throw new IllegalArgumentException("Provided graph doesn't have exactly one root");
         }
     }
 
-    public void checkForCycles(Digraph g) {
+    private void checkForCycles(Digraph g) {
         CycleDetector detector = new CycleDetector(g);
         if (detector.hasCycle(g)) {
             throw new IllegalArgumentException("Graph is not DAG because it has cycle");

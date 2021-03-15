@@ -53,7 +53,7 @@ public class SAP {
         return ancestor().ancestor;
     }
 
-    public Ancestor ancestor() {
+    private Ancestor ancestor() {
         int shortestPath = Integer.MAX_VALUE;
         int ancestor = -1;
 
