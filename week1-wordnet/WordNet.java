@@ -5,11 +5,13 @@ import edu.princeton.cs.algs4.In;
 import java.util.HashMap;
 
 public class WordNet {
-    // Noun -> vertex ids - one nout might be assigned to several vertexes
+    // Noun -> vertex ids - one noun might be assigned to several vertexes => might appear
+    // in several synsets
     private final HashMap<String, Bag<Integer>> nouns = new HashMap<String, Bag<Integer>>();
     // Vertex id -> synset
     private final HashMap<Integer, String> synsets = new HashMap<Integer, String>();
-    private final Digraph digraph;
+    private final Digraph graph;
+    private final SAP sap;
 
     // constructor takes the name of the two input files
     public WordNet(String synsetsFileName, String hypernymsFileName) {
@@ -24,12 +26,14 @@ public class WordNet {
         In sFile = new In(synsetsFileName);
         In hFile = new In(hypernymsFileName);
 
-        loadSynsets(sFile);
-        digraph = new Digraph(nouns.size());
+        int count = loadSynsets(sFile);
+        graph = new Digraph(count);
         loadHypernyms(hFile);
 
-        checkForCycles();
-        checkThatOneRooted();
+        checkForCycles(graph);
+        checkThatOneRooted(graph);
+
+        sap = new SAP(graph);
     }
 
     // returns all WordNet nouns
@@ -44,16 +48,29 @@ public class WordNet {
 
     // distance between nounA and nounB (defined below)
     public int distance(String nounA, String nounB) {
-        return 0;
+        Iterable<Integer> a = getNoun(nounA);
+        Iterable<Integer> b = getNoun(nounB);
+
+        return sap.length(a, b);
     }
 
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
-        return "";
+        Iterable<Integer> a = getNoun(nounA);
+        Iterable<Integer> b = getNoun(nounB);
+
+        int ancestor = sap.length(a, b);
+        if (ancestor == -1) {
+            throw new IllegalArgumentException(
+                    "Words '" + nounA + "' and '" + nounB + "' don't have common ancestor");
+        }
+
+        return synsets.get(ancestor);
     }
 
-    private void loadSynsets(In file) {
+    private int loadSynsets(In file) {
+        int count = 0;
         while (file.hasNextLine()) {
             String line = file.readLine();
             String[] tokens = line.split(",");
@@ -72,7 +89,11 @@ public class WordNet {
 
                 vertexes.add(vertexId);
             }
+
+            ++count;
         }
+
+        return count;
     }
 
     private void loadHypernyms(In file) {
@@ -85,30 +106,54 @@ public class WordNet {
 
             final int v = Integer.parseInt(tokens[0]);
             for (int iEdge = 1; iEdge < tokens.length; ++iEdge) {
-                digraph.addEdge(v, Integer.parseInt(tokens[iEdge]));
+                graph.addEdge(v, Integer.parseInt(tokens[iEdge]));
             }
         }
     }
 
-    private void checkThatOneRooted() {
-        int rootCount = 0;
-        for (int v = 0; v < digraph.V(); ++v) {
-            if (!digraph.adj(v).iterator().hasNext()) {
-                if (++rootCount > 2) {
-                    throw new IllegalArgumentException("Graph has more than 1 root");
+    public void checkThatOneRooted(Digraph g) {
+        RootsDetector d = new RootsDetector(g);
+        if (!d.hasOneRoot()) {
+            throw new IllegalArgumentException("Provided graph doesn't have exactly one root");
+        }
+    }
+
+    public void checkForCycles(Digraph g) {
+        CycleDetector detector = new CycleDetector(g);
+        if (detector.hasCycle(g)) {
+            throw new IllegalArgumentException("Graph is not DAG because it has cycle");
+        }
+    }
+
+    private Bag<Integer> getNoun(String noun) {
+        if (noun == null) {
+            throw new IllegalArgumentException("Noun can't be null");
+        }
+        Bag<Integer> v = nouns.get(noun);
+        if (v == null) {
+            throw new IllegalArgumentException("Noun '" + noun + "' is not a WordNet noun");
+        }
+        return v;
+    }
+
+    private class RootsDetector {
+        Digraph graph;
+
+        RootsDetector(Digraph g) {
+            graph = g;
+        }
+
+        public boolean hasOneRoot() {
+            int rootCount = 0;
+            for (int v = 0; v < graph.V(); ++v) {
+                if (!graph.adj(v).iterator().hasNext()) {
+                    if (++rootCount > 1) {
+                        return false;
+                    }
                 }
             }
-        }
 
-        if (rootCount != 1) {
-            throw new IllegalArgumentException("Graph has no roots");
-        }
-    }
-
-    private void checkForCycles() {
-        CycleDetector detector = new CycleDetector(digraph);
-        if (detector.hasCycle()) {
-            throw new IllegalArgumentException("Graph is not DAG because it has cycle");
+            return rootCount == 1;
         }
     }
 
@@ -124,8 +169,8 @@ public class WordNet {
             graph = d;
         }
 
-        public boolean hasCycle() {
-            for (int v = 0; v < graph.V(); ++v) {
+        public boolean hasCycle(Digraph g) {
+            for (int v = 0; v < g.V(); ++v) {
                 if (dfs(v)) {
                     return true;
                 }
@@ -152,6 +197,9 @@ public class WordNet {
 
     // do unit testing of this class
     public static void main(String[] args) {
-
+        // Digraph d = new Digraph(new In(args[0]));
+        // WordNet.checkForCycles(d);
+        // WordNet.checkThatOneRooted(d);
+        new WordNet(args[0], args[1]);
     }
 }
