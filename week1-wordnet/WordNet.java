@@ -60,7 +60,7 @@ public class WordNet {
         Iterable<Integer> a = getNoun(nounA);
         Iterable<Integer> b = getNoun(nounB);
 
-        int ancestor = sap.length(a, b);
+        int ancestor = sap.ancestor(a, b);
         if (ancestor == -1) {
             throw new IllegalArgumentException(
                     "Words '" + nounA + "' and '" + nounB + "' don't have common ancestor");
@@ -200,6 +200,6 @@ public class WordNet {
         // Digraph d = new Digraph(new In(args[0]));
         // WordNet.checkForCycles(d);
         // WordNet.checkThatOneRooted(d);
-        new WordNet(args[0], args[1]);
+        // new WordNet(args[0], args[1]);
     }
 }

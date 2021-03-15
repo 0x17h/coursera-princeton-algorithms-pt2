@@ -4,7 +4,6 @@ import edu.princeton.cs.algs4.StdIn;
 import edu.princeton.cs.algs4.StdOut;
 
 public class SAP {
-    private final Digraph graph;
     private final FastBFS vBfs;
     private final FastBFS wBfs;
 
@@ -20,9 +19,8 @@ public class SAP {
 
     // constructor takes a digraph (not necessarily a DAG)
     public SAP(Digraph g) {
-        graph = g;
-        vBfs = new FastBFS(graph);
-        wBfs = new FastBFS(graph);
+        vBfs = new FastBFS(g);
+        wBfs = new FastBFS(g);
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
@@ -64,26 +62,39 @@ public class SAP {
             lastV = vBfs.makeStep();
             lastW = wBfs.makeStep();
 
-            if (lastV != -1 && wBfs.hasPathTo(lastV)) {
-                shortestPath = wBfs.distanceTo(lastV) + vBfs.distanceTo(lastV);
+            int shortestCandidate = getDistance(lastV, wBfs);
+            if (shortestCandidate != -1 && shortestCandidate < shortestPath) {
                 ancestor = lastV;
+                shortestPath = shortestCandidate;
             }
-            else if (lastW != -1 && vBfs.hasPathTo(lastW)) {
-                shortestPath = vBfs.distanceTo(lastW) + wBfs.distanceTo(lastW);
+
+            shortestCandidate = getDistance(lastW, vBfs);
+            if (shortestCandidate != -1 && shortestCandidate < shortestPath) {
                 ancestor = lastW;
+                shortestPath = shortestCandidate;
             }
 
-            int distance = vBfs.getCurrentDistance() + wBfs.getCurrentDistance();
-            if (distance >= shortestPath) {
-                break;
+            if (vBfs.getCurrentDistance() > shortestPath) {
+                vBfs.terminate();
             }
 
+            if (wBfs.getCurrentDistance() > shortestPath) {
+                wBfs.terminate();
+            }
         } while (lastV != -1 || lastW != -1);
 
         return ancestor == -1
                ? new Ancestor(-1, -1)
                : new Ancestor(ancestor, shortestPath);
     }
+
+    private int getDistance(int v, FastBFS bfs) {
+        return v != -1 && bfs.hasPathTo(v)
+               ? vBfs.distanceTo(v) + wBfs.distanceTo(v)
+               : -1;
+    }
+
+    private int
 
     // do unit testing of this class
     public static void main(String[] args) {

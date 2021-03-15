@@ -89,6 +89,12 @@ public class FastBFS {
         return v;
     }
 
+    public void terminate() {
+        if (!nextStepQueue.isEmpty()) {
+            nextStepQueue = new Queue<Integer>();
+        }
+    }
+
     public int distanceTo(int w) {
         checkSource(w);
         return vertexes[w].distanceTo;
@@ -117,9 +123,12 @@ public class FastBFS {
         }
 
         int counter = 0;
-        for (int s : sources) {
-            ++counter;
+        for (Integer s : sources) {
+            if (s == null) {
+                throw new IllegalArgumentException("Source cannot be null");
+            }
             checkSource(s);
+            ++counter;
         }
 
         if (counter == 0) {
@@ -134,6 +143,9 @@ public class FastBFS {
     }
 
     private void reinitialize() {
+        terminate();
+        currentDistance = 0;
+
         for (Vertex v : dirtyQueue) {
             v.reinitialize();
         }
@@ -141,12 +153,6 @@ public class FastBFS {
         if (!dirtyQueue.isEmpty()) {
             dirtyQueue = new Bag<Vertex>();
         }
-
-        if (!nextStepQueue.isEmpty()) {
-            nextStepQueue = new Queue<Integer>();
-        }
-
-        currentDistance = 0;
     }
 
     public Iterable<Integer> pathTo(int v) {
